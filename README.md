@@ -197,3 +197,6 @@ python app.py
 
 For educational purposes unless otherwise specified.
 
+Use this link to view the website: 
+https://ai-note-generator-1.onrender.com/
+
