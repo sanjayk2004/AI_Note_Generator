@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Notes Generator</title>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+    <!-- Marked.js -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Plus Jakarta Sans for premium typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+
+<body>
+
+<!-- Custom Cursor -->
+<div class="cursor-ball" id="cursorBall"></div>
+<div class="cursor-trail" id="cursorTrail"></div>
+
+<!-- ═══════════════════════════════════════
+     NAVBAR  —  Logo centred, menu top-right
+═══════════════════════════════════════ -->
+<nav class="navbar">
+    <div class="nav-brand">
+        <!-- Logo only, centred -->
+        <div class="nav-logo">
+            <i class="fas fa-brain"></i>
+        </div>
+        <!-- Keep nav-title in DOM (hidden) so any JS referencing it won't error -->
+        <div class="nav-title" aria-hidden="true">
+            <span class="brand-name">StudyAI</span>
+            <span class="brand-tag">Powered by Claude</span>
+        </div>
+    </div>
+
+    <!-- Top-right actions -->
+    <div class="nav-actions">
+        <!-- Animated Hamburger -->
+        <button class="menu-btn" id="menuBtn" title="Menu" aria-label="Open menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </div>
+</nav>
+
+<!-- ── Floating Glass Menu ── -->
+<div class="floating-menu" id="floatingMenu">
+    <!-- History -->
+    <button class="menu-item history-item-btn" id="historyBtn">
+        <span class="menu-icon"><i class="fas fa-clock-rotate-left"></i></span>
+        History
+    </button>
+
+    <div class="menu-divider"></div>
+
+    <!-- Dark Mode Toggle -->
+    <button class="menu-item dark-toggle" id="darkModeToggle">
+        <span class="menu-icon"><i class="fas fa-moon" id="darkModeIcon"></i></span>
+        <span id="darkModeLabel">Dark Mode</span>
+    </button>
+
+    <div class="menu-divider"></div>
+
+    <!-- About -->
+    <button class="menu-item about-btn" id="aboutBtn">
+        <span class="menu-icon"><i class="fas fa-circle-info"></i></span>
+        About
+    </button>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     HERO SECTION
+═══════════════════════════════════════ -->
+<section class="hero">
+    <!-- Background Layers -->
+    <div class="hero-grid" aria-hidden="true"></div>
+
+    <!-- Animated SVG Waves -->
+    <svg class="hero-waves" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 560" preserveAspectRatio="none" aria-hidden="true">
+        <!-- Wave 1 — slow, wide, top half -->
+        <path class="wave wave-1" d="M0,160 C200,80 400,260 600,180 C800,100 1000,280 1200,200 C1320,160 1380,120 1440,140 L1440,0 L0,0 Z"/>
+        <!-- Wave 2 — mid speed, flows across middle -->
+        <path class="wave wave-2" d="M0,260 C180,200 360,340 540,270 C720,200 900,360 1080,290 C1260,220 1360,300 1440,270 L1440,560 L0,560 Z"/>
+        <!-- Wave 3 — faster, bottom layer -->
+        <path class="wave wave-3" d="M0,380 C160,310 320,460 480,390 C640,320 800,470 960,400 C1120,330 1280,430 1440,380 L1440,560 L0,560 Z"/>
+        <!-- Wave 4 — thin accent line wave -->
+        <path class="wave wave-4" d="M0,220 C240,160 480,300 720,230 C960,160 1200,300 1440,220"/>
+        <!-- Wave 5 — thin accent line, offset -->
+        <path class="wave wave-5" d="M0,320 C200,260 400,380 600,310 C800,240 1000,360 1200,300 C1320,270 1380,290 1440,280"/>
+    </svg>
+
+    <div class="hero-content">
+        <!-- Centred Logo -->
+        <div class="hero-logo">
+            <i class="fas fa-brain"></i>
+        </div>
+
+        <div class="hero-badge">
+            <i class="fas fa-sparkles"></i>
+            AI-Powered Learning
+        </div>
+
+        <h1 class="hero-title">
+            <span class="gradient-text-animated">AI Notes Generator</span>
+        </h1>
+
+        <p class="hero-subtitle">
+            Transform your study materials into smart notes, quizzes and flashcards using AI.
+        </p>
+
+        <!-- Stats Bar -->
+        <div class="hero-stats">
+            <div class="stat-item">
+                <i class="fas fa-file-lines"></i>
+                <span>PDF, DOCX, PPTX, TXT</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <i class="fas fa-bolt"></i>
+                <span>8 Output Types</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat-item">
+                <i class="fas fa-download"></i>
+                <span>Export as PDF / DOCX / TXT</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     INPUT SECTION
+═══════════════════════════════════════ -->
+<main class="main-container">
+    <section class="input-section" id="inputSection">
+
+        <!-- Input Type Tabs -->
+        <div class="input-tabs">
+            <button class="input-tab active" data-tab="upload">
+                <i class="fas fa-cloud-arrow-up"></i>
+                Upload File
+            </button>
+            <button class="input-tab" data-tab="paste">
+                <i class="fas fa-paste"></i>
+                Paste Text
+            </button>
+        </div>
+
+        <!-- ── Upload Panel ── -->
+        <div class="input-panel active" id="uploadPanel">
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-zone-icon">
+                    <i class="fas fa-cloud-arrow-up"></i>
+                </div>
+                <h3 class="drop-title">Drop your file here</h3>
+                <p class="drop-subtitle">or click to browse files</p>
+                <div class="drop-formats">
+                    <span class="format-badge">PDF</span>
+                    <span class="format-badge">DOCX</span>
+                    <span class="format-badge">PPTX</span>
+                    <span class="format-badge">TXT</span>
+                </div>
+                <p class="drop-limit">Maximum file size: 16MB</p>
+                <input type="file" id="fileInput" accept=".pdf,.docx,.pptx,.txt" hidden />
+            </div>
+
+            <!-- File Preview -->
+            <div class="file-preview" id="filePreview" style="display:none;">
+                <div class="file-info">
+                    <div class="file-icon">
+                        <i class="fas fa-file" id="fileTypeIcon"></i>
+                    </div>
+                    <div class="file-details">
+                        <span class="file-name" id="fileName">filename.pdf</span>
+                        <span class="file-size" id="fileSize">0 KB</span>
+                    </div>
+                    <button class="file-remove" id="removeFile" title="Remove file">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Paste Text Panel ── -->
+        <div class="input-panel" id="pastePanel">
+            <div class="textarea-wrapper">
+                <textarea
+                    id="textInput"
+                    class="text-input"
+                    placeholder="Paste your study material here...&#10;&#10;You can paste lecture notes, textbook chapters, articles, or any educational content."
+                    spellcheck="false"
+                ></textarea>
+                <div class="textarea-footer">
+                    <span class="char-counter" id="charCounter">0 characters</span>
+                    <button class="clear-btn" id="clearText">
+                        <i class="fas fa-trash-can"></i>
+                        Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Text Stats -->
+        <div class="text-stats" id="textStats" style="display:none;">
+            <div class="stat-card animated-stat">
+                <div class="stat-icon-bg words-bg"><i class="fas fa-font"></i></div>
+                <div>
+                    <span class="stat-value" id="statWords">0</span>
+                    <span class="stat-label">Total Words</span>
+                </div>
+            </div>
+            <div class="stat-card animated-stat">
+                <div class="stat-icon-bg time-bg"><i class="fas fa-clock"></i></div>
+                <div>
+                    <span class="stat-value" id="statReading">0 min</span>
+                    <span class="stat-label">Reading Time</span>
+                </div>
+            </div>
+            <div class="stat-card animated-stat">
+                <div class="stat-icon-bg study-bg"><i class="fas fa-graduation-cap"></i></div>
+                <div>
+                    <span class="stat-value" id="statStudy">0 min</span>
+                    <span class="stat-label">Study Time</span>
+                </div>
+            </div>
+            <div class="stat-card animated-stat">
+                <div class="stat-icon-bg para-bg"><i class="fas fa-align-left"></i></div>
+                <div>
+                    <span class="stat-value" id="statParagraphs">0</span>
+                    <span class="stat-label">Paragraphs</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Generate Button -->
+        <div class="generate-section">
+            <button class="generate-btn" id="generateBtn" disabled>
+                <i class="fas fa-wand-magic-sparkles"></i>
+                <span id="generateBtnText">Generate Study Notes</span>
+            </button>
+            <p class="generate-hint" id="generateHint">
+                Upload a file or paste text to get started
+            </p>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container" id="progressContainer" style="display:none;">
+            <div class="progress-header">
+                <span class="progress-label" id="progressLabel">Initializing...</span>
+                <span class="progress-percent" id="progressPercent">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-steps" id="progressSteps">
+                <span class="step active" id="step1"><i class="fas fa-check"></i> Processing text</span>
+                <span class="step" id="step2"><i class="fas fa-circle-notch fa-spin"></i> Generating summary</span>
+                <span class="step" id="step3"><i class="fas fa-circle-notch fa-spin"></i> Creating notes</span>
+                <span class="step" id="step4"><i class="fas fa-circle-notch fa-spin"></i> Making flashcards</span>
+                <span class="step" id="step5"><i class="fas fa-circle-notch fa-spin"></i> Building quiz</span>
+            </div>
+        </div>
+
+    </section>
+
+
+<!-- ═══════════════════════════════════════
+     RESULTS SECTION
+═══════════════════════════════════════ -->
+    <section class="results-section" id="resultsSection" style="display:none;">
+
+        <!-- Results Header -->
+        <div class="results-header">
+            <div class="results-title">
+                <i class="fas fa-wand-magic-sparkles"></i>
+                <h2>Your Study Materials</h2>
+            </div>
+            <div class="results-actions">
+                <button class="action-btn" id="copyAllBtn">
+                    <i class="fas fa-copy"></i>
+                    Copy All
+                </button>
+                <button class="action-btn" id="printBtn">
+                    <i class="fas fa-print"></i>
+                    Print
+                </button>
+
+                <!-- Export Dropdown — z-index fixed via JS positioning -->
+                <div class="export-dropdown" id="exportDropdownWrapper">
+                    <button class="action-btn primary" id="exportBtn">
+                        <i class="fas fa-download"></i>
+                        Export
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="export-menu" id="exportMenu">
+                        <button class="export-option" data-format="pdf">
+                            <i class="fas fa-file-pdf"></i> Export as PDF
+                        </button>
+                        <button class="export-option" data-format="docx">
+                            <i class="fas fa-file-word"></i> Export as DOCX
+                        </button>
+                        <button class="export-option" data-format="txt">
+                            <i class="fas fa-file-lines"></i> Export as TXT
+                        </button>
+                    </div>
+                </div>
+
+                <button class="action-btn" id="newGenerationBtn">
+                    <i class="fas fa-rotate-right"></i>
+                    New
+                </button>
+            </div>
+        </div>
+
+        <!-- Result Tabs -->
+        <div class="result-tabs-wrapper">
+            <div class="result-tabs" id="resultTabs">
+                <button class="result-tab active" data-result="summary">
+                    <i class="fas fa-file-lines"></i><span>Summary</span>
+                </button>
+                <button class="result-tab" data-result="study_notes">
+                    <i class="fas fa-book-open"></i><span>Study Notes</span>
+                </button>
+                <button class="result-tab" data-result="key_concepts">
+                    <i class="fas fa-brain"></i><span>Key Concepts</span>
+                </button>
+                <button class="result-tab" data-result="quiz">
+                    <i class="fas fa-circle-question"></i><span>Quiz</span>
+                </button>
+                <button class="result-tab" data-result="important_questions">
+                    <i class="fas fa-bullseye"></i><span>Important Questions</span>
+                </button>
+                <button class="result-tab" data-result="flashcards">
+                    <i class="fas fa-layer-group"></i><span>Flashcards</span>
+                </button>
+                <button class="result-tab" data-result="cheat_sheet">
+                    <i class="fas fa-clipboard-list"></i><span>Cheat Sheet</span>
+                </button>
+                <button class="result-tab" data-result="ask_ai">
+                    <i class="fas fa-robot"></i><span>Ask AI</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Result Panels -->
+        <div class="result-content">
+
+            <!-- ── Summary Panel ── -->
+            <div class="result-panel active" id="panel-summary">
+                <div class="panel-header">
+                    <h3><i class="fas fa-file-lines"></i> Summary</h3>
+                    <button class="copy-btn" data-target="summaryContent">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+                <div class="summary-tabs">
+                    <button class="summary-tab active" data-summary="short">Short Summary</button>
+                    <button class="summary-tab" data-summary="medium">Medium Summary</button>
+                    <button class="summary-tab" data-summary="detailed">Detailed Summary</button>
+                </div>
+                <div class="panel-body" id="summaryContent"></div>
+            </div>
+
+            <!-- ── Study Notes Panel ── -->
+            <div class="result-panel" id="panel-study_notes">
+                <div class="panel-header">
+                    <h3><i class="fas fa-book-open"></i> Study Notes</h3>
+                    <div class="panel-actions">
+                        <button class="copy-btn" data-target="notesContent"><i class="fas fa-copy"></i> Copy</button>
+                        <button class="download-btn" id="downloadNotesBtn"><i class="fas fa-download"></i> Download</button>
+                        <button class="print-btn" id="printNotesBtn"><i class="fas fa-print"></i> Print</button>
+                    </div>
+                </div>
+                <div class="panel-body markdown-body" id="notesContent"></div>
+            </div>
+
+            <!-- ── Key Concepts Panel ── -->
+            <div class="result-panel" id="panel-key_concepts">
+                <div class="panel-header">
+                    <h3><i class="fas fa-brain"></i> Key Concepts</h3>
+                    <button class="copy-btn" data-target="conceptsContent"><i class="fas fa-copy"></i> Copy</button>
+                </div>
+                <div class="panel-body" id="conceptsContent"></div>
+            </div>
+
+            <!-- ── Quiz Panel ── -->
+            <div class="result-panel" id="panel-quiz">
+                <div class="panel-header">
+                    <h3><i class="fas fa-circle-question"></i> Quiz</h3>
+                    <button class="copy-btn" data-target="quizContent"><i class="fas fa-copy"></i> Copy</button>
+                </div>
+                <div class="quiz-type-tabs">
+                    <button class="quiz-tab active" data-quiz="mcq"><i class="fas fa-check-circle"></i> MCQ</button>
+                    <button class="quiz-tab" data-quiz="true_false"><i class="fas fa-toggle-on"></i> True/False</button>
+                    <button class="quiz-tab" data-quiz="fill_blank"><i class="fas fa-pen-to-square"></i> Fill Blank</button>
+                    <button class="quiz-tab" data-quiz="short_answer"><i class="fas fa-comment-dots"></i> Short Answer</button>
+                </div>
+                <div class="panel-body" id="quizContent"></div>
+            </div>
+
+            <!-- ── Important Questions Panel ── -->
+            <div class="result-panel" id="panel-important_questions">
+                <div class="panel-header">
+                    <h3><i class="fas fa-bullseye"></i> Important Questions</h3>
+                    <button class="copy-btn" data-target="questionsContent"><i class="fas fa-copy"></i> Copy</button>
+                </div>
+                <div class="difficulty-tabs">
+                    <button class="diff-tab active" data-diff="easy"><span class="diff-badge easy">Easy</span></button>
+                    <button class="diff-tab" data-diff="medium"><span class="diff-badge medium">Medium</span></button>
+                    <button class="diff-tab" data-diff="hard"><span class="diff-badge hard">Hard</span></button>
+                </div>
+                <div class="panel-body" id="questionsContent"></div>
+            </div>
+
+            <!-- ── Flashcards Panel ── -->
+            <div class="result-panel" id="panel-flashcards">
+                <div class="panel-header">
+                    <h3><i class="fas fa-layer-group"></i> Flashcards</h3>
+                    <div class="flashcard-controls">
+                        <span class="card-counter" id="cardCounter">Card 1 of 20</span>
+                        <button class="copy-btn" data-target="flashcardsContent"><i class="fas fa-copy"></i> Copy</button>
+                    </div>
+                </div>
+                <div class="flashcard-viewer" id="flashcardsContent">
+                    <div class="flashcard" id="currentCard">
+                        <div class="flashcard-inner" id="flashcardInner">
+                            <div class="flashcard-front">
+                                <span class="card-label">Question</span>
+                                <p id="cardQuestion">Loading...</p>
+                            </div>
+                            <div class="flashcard-back">
+                                <span class="card-label">Answer</span>
+                                <p id="cardAnswer">Loading...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="flip-hint">Click card to flip</p>
+                    <div class="flashcard-nav">
+                        <button class="nav-card-btn" id="prevCard"><i class="fas fa-arrow-left"></i> Previous</button>
+                        <div class="card-dots" id="cardDots"></div>
+                        <button class="nav-card-btn" id="nextCard">Next <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                    <div class="flashcard-extra-controls">
+                        <button class="control-btn" id="shuffleCards"><i class="fas fa-shuffle"></i> Shuffle</button>
+                        <button class="control-btn" id="toggleAllCards"><i class="fas fa-border-all"></i> View All</button>
+                    </div>
+                    <div class="all-cards-grid" id="allCardsGrid" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- ── Cheat Sheet Panel ── -->
+            <div class="result-panel" id="panel-cheat_sheet">
+                <div class="panel-header">
+                    <h3><i class="fas fa-clipboard-list"></i> Cheat Sheet</h3>
+                    <button class="copy-btn" data-target="cheatContent"><i class="fas fa-copy"></i> Copy</button>
+                </div>
+                <div class="panel-body markdown-body cheat-sheet-body" id="cheatContent"></div>
+            </div>
+
+            <!-- ── Ask AI Panel ── -->
+            <div class="result-panel" id="panel-ask_ai">
+                <div class="panel-header">
+                    <h3><i class="fas fa-robot"></i> Ask AI</h3>
+                    <div class="chat-controls">
+                        <button class="control-btn" id="clearChatBtn" title="Clear Chat">
+                            <i class="fas fa-trash-can"></i> Clear
+                        </button>
+                    </div>
+                </div>
+                <div class="chat-container" style="display:flex; flex-direction:column; height:480px; min-height:0;">
+                    <div class="chat-messages" id="chatMessages" style="flex:1; overflow-y:auto; min-height:0;">
+                        <div class="chat-welcome">
+                            <div class="welcome-icon"><i class="fas fa-robot"></i></div>
+                            <h4>AI Study Assistant</h4>
+                            <p>Ask me anything! I can answer general questions, explain concepts, help with your study material, and much more.</p>
+                        </div>
+                    </div>
+                    <div class="chat-input-area" style="flex-shrink:0;">
+                        <div class="chat-input-wrapper">
+                            <textarea id="chatInput" class="chat-input" placeholder="Ask me anything — greetings, questions, study help..." rows="1"></textarea>
+                            <button class="send-btn" id="sendMessageBtn"><i class="fas fa-paper-plane"></i></button>
+                        </div>
+                        <p class="chat-disclaimer">Ask anything — study questions, general knowledge, or just say hi!</p>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /.result-content -->
+    </section><!-- /.results-section -->
+
+</main>
+
+
+<!-- ═══════════════════════════════════════
+     HISTORY MODAL
+═══════════════════════════════════════ -->
+<div class="modal-overlay" id="historyModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3><i class="fas fa-clock-rotate-left"></i> Recent History</h3>
+            <div class="modal-header-actions">
+                <button class="clear-history-btn" id="clearHistoryBtn">
+                    <i class="fas fa-trash-can"></i> Clear All
+                </button>
+                <button class="modal-close" id="closeHistory">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+        <div class="modal-body" id="historyList">
+            <div class="empty-history">
+                <i class="fas fa-clock-rotate-left"></i>
+                <p>No history yet. Generate your first study notes!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     ABOUT MODAL
+═══════════════════════════════════════ -->
+<div class="about-modal-overlay" id="aboutModal">
+    <div class="about-modal">
+        <div class="about-header">
+            <button class="about-close" id="closeAbout"><i class="fas fa-xmark"></i></button>
+            <div class="about-logo-icon"><i class="fas fa-brain"></i></div>
+            <h2 class="about-title">AI Notes Generator</h2>
+            <p class="about-tagline">A modern AI-powered study assistant that transforms educational materials into organised learning resources within seconds.</p>
+        </div>
+
+        <div class="about-body">
+
+            <!-- Features -->
+            <p class="about-section-title"><i class="fas fa-stars"></i> Features</p>
+            <div class="about-features-grid">
+                <div class="about-feature-chip"><i class="fas fa-file-lines"></i> AI Summary</div>
+                <div class="about-feature-chip"><i class="fas fa-book-open"></i> Study Notes</div>
+                <div class="about-feature-chip"><i class="fas fa-brain"></i> Key Concepts</div>
+                <div class="about-feature-chip"><i class="fas fa-circle-question"></i> Quiz Generation</div>
+                <div class="about-feature-chip"><i class="fas fa-layer-group"></i> Flashcards</div>
+                <div class="about-feature-chip"><i class="fas fa-clipboard-list"></i> Cheat Sheet</div>
+                <div class="about-feature-chip"><i class="fas fa-bullseye"></i> Important Questions</div>
+                <div class="about-feature-chip"><i class="fas fa-robot"></i> Ask AI Assistant</div>
+            </div>
+
+            <!-- Supported Files -->
+            <p class="about-section-title"><i class="fas fa-folder-open"></i> Supported Files</p>
+            <div class="about-features-grid" style="margin-bottom:28px;">
+                <div class="about-feature-chip"><i class="fas fa-file-pdf"></i> PDF</div>
+                <div class="about-feature-chip"><i class="fas fa-file-word"></i> DOCX</div>
+                <div class="about-feature-chip"><i class="fas fa-file-powerpoint"></i> PPTX</div>
+                <div class="about-feature-chip"><i class="fas fa-file-lines"></i> TXT</div>
+            </div>
+
+            <!-- Technologies -->
+            <p class="about-section-title"><i class="fas fa-microchip"></i> Technologies Used</p>
+            <div class="about-tech-grid">
+                <div class="about-tech-card">
+                    <div class="about-tech-label"><i class="fas fa-palette"></i> Frontend</div>
+                    <div class="about-tech-items">
+                        <span class="about-tech-tag">HTML</span>
+                        <span class="about-tech-tag">CSS</span>
+                        <span class="about-tech-tag">JavaScript</span>
+                    </div>
+                </div>
+                <div class="about-tech-card">
+                    <div class="about-tech-label"><i class="fas fa-server"></i> Backend</div>
+                    <div class="about-tech-items">
+                        <span class="about-tech-tag">Python</span>
+                        <span class="about-tech-tag">Flask</span>
+                    </div>
+                </div>
+                <div class="about-tech-card">
+                    <div class="about-tech-label"><i class="fas fa-robot"></i> AI</div>
+                    <div class="about-tech-items">
+                        <span class="about-tech-tag">Grok API</span>
+                    </div>
+                </div>
+                <div class="about-tech-card">
+                    <div class="about-tech-label"><i class="fas fa-wrench"></i> Other</div>
+                    <div class="about-tech-items">
+                        <span class="about-tech-tag">Local Storage</span>
+                        <span class="about-tech-tag">Markdown</span>
+                        <span class="about-tech-tag">PDF Export</span>
+                        <span class="about-tech-tag">DOCX Export</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer info -->
+            <div class="about-footer-info">
+                <span>Designed by <strong>Sanjay K</strong></span>
+                <span class="about-version">Version 1.0</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════
+     TOAST NOTIFICATIONS
+═══════════════════════════════════════ -->
+<div class="toast-container" id="toastContainer"></div>
+
+
+<!-- ═══════════════════════════════════════
+     FOOTER  — Professional
+═══════════════════════════════════════ -->
+<footer class="footer">
+    <div class="footer-inner">
+        <span>© 2026 AI Notes Generator</span>
+        <span class="footer-sep">·</span>
+        <span>Designed by Sanjay K</span>
+    </div>
+</footer>
+
+
+<!-- Main JavaScript -->
+<script src="/static/js/script.js"></script>
+
+<!-- ── UI Enhancement Script ── -->
+<script>
+(function() {
+    /* ── Custom Cursor ── */
+    const ball  = document.getElementById('cursorBall');
+    const trail = document.getElementById('cursorTrail');
+    let mx=0, my=0, tx=0, ty=0;
+
+    document.addEventListener('mousemove', e => {
+        mx = e.clientX; my = e.clientY;
+        ball.style.left  = mx + 'px';
+        ball.style.top   = my + 'px';
+    });
+
+    setInterval(() => {
+        tx += (mx - tx) * 0.2;
+        ty += (my - ty) * 0.2;
+        trail.style.left = tx + 'px';
+        trail.style.top  = ty + 'px';
+    }, 16);
+
+    document.querySelectorAll('button, a, [role="button"], input, textarea, .drop-zone, .flashcard, .quiz-option, .concept-item').forEach(el => {
+        el.addEventListener('mouseenter', () => ball.classList.add('cursor-hover'));
+        el.addEventListener('mouseleave', () => ball.classList.remove('cursor-hover'));
+    });
+
+    document.addEventListener('mousedown', () => ball.classList.add('cursor-click'));
+    document.addEventListener('mouseup',   () => ball.classList.remove('cursor-click'));
+
+    /* ── Dark Mode ── */
+    const html      = document.documentElement;
+    const toggle    = document.getElementById('darkModeToggle');
+    const icon      = document.getElementById('darkModeIcon');
+    const label     = document.getElementById('darkModeLabel');
+
+    function applyTheme(dark) {
+        html.setAttribute('data-theme', dark ? 'dark' : 'light');
+        icon.className  = dark ? 'fas fa-sun' : 'fas fa-moon';
+        label.textContent = dark ? 'Light Mode' : 'Dark Mode';
+        localStorage.setItem('theme', dark ? 'dark' : 'light');
+    }
+
+    const savedTheme = localStorage.getItem('theme');
+    applyTheme(savedTheme === 'dark');
+
+    toggle.addEventListener('click', () => {
+        applyTheme(html.getAttribute('data-theme') !== 'dark');
+        closeMenu();
+    });
+
+    /* ── Hamburger / Float Menu ── */
+    const menuBtn      = document.getElementById('menuBtn');
+    const floatingMenu = document.getElementById('floatingMenu');
+
+    function openMenu()  { floatingMenu.classList.add('open'); menuBtn.classList.add('open'); }
+    function closeMenu() { floatingMenu.classList.remove('open'); menuBtn.classList.remove('open'); }
+    function toggleMenu(){ floatingMenu.classList.contains('open') ? closeMenu() : openMenu(); }
+
+    menuBtn.addEventListener('click', e => { e.stopPropagation(); toggleMenu(); });
+
+    document.addEventListener('click', e => {
+        if (!floatingMenu.contains(e.target) && e.target !== menuBtn) closeMenu();
+    });
+
+    /* ── About Modal ── */
+    const aboutModal  = document.getElementById('aboutModal');
+    const aboutBtn    = document.getElementById('aboutBtn');
+    const closeAbout  = document.getElementById('closeAbout');
+
+    aboutBtn.addEventListener('click', () => {
+        aboutModal.classList.add('active');
+        closeMenu();
+    });
+
+    closeAbout.addEventListener('click', () => aboutModal.classList.remove('active'));
+
+    aboutModal.addEventListener('click', e => {
+        if (e.target === aboutModal) aboutModal.classList.remove('active');
+    });
+
+    /* ── Export Dropdown — Fixed Positioning ── */
+    const exportBtn     = document.getElementById('exportBtn');
+    const exportMenu    = document.getElementById('exportMenu');
+    const exportWrapper = document.getElementById('exportDropdownWrapper');
+
+    function positionExportMenu() {
+        const rect = exportBtn.getBoundingClientRect();
+        exportMenu.style.top  = (rect.bottom + 8) + 'px';
+        exportMenu.style.left = Math.max(8, rect.right - 200) + 'px';
+    }
+
+    if (exportBtn && exportMenu) {
+        exportBtn.addEventListener('click', e => {
+            e.stopPropagation();
+            const isOpen = exportMenu.classList.contains('show');
+            if (!isOpen) { positionExportMenu(); }
+            exportMenu.classList.toggle('show');
+        });
+
+        document.addEventListener('click', e => {
+            if (!exportWrapper.contains(e.target)) exportMenu.classList.remove('show');
+        });
+
+        window.addEventListener('scroll', () => {
+            if (exportMenu.classList.contains('show')) positionExportMenu();
+        }, true);
+    }
+
+    /* ── History via existing historyBtn ── */
+    /* The existing script.js listens on #historyBtn, so just wire close-menu */
+    const histBtn = document.getElementById('historyBtn');
+    if (histBtn) {
+        histBtn.addEventListener('click', () => closeMenu());
+    }
+
+    /* ── Service Worker ── */
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(r => console.log('SW registered:', r.scope))
+                .catch(e => console.error('SW failed:', e));
+        });
+    }
+})();
+</script>
+
+</body>
+</html>
