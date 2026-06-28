@@ -65,10 +65,10 @@ class Config:
     # ── Compatibility aliases ──
     ANTHROPIC_API_KEY  = os.getenv('ANTHROPIC_API_KEY', '')
     OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')
-    GEMINI_API_KEY     = os.getenv('GEMINI_API_KEY', '')
+    GROQ_API_KEY     = os.getenv('GROQ_API_KEY', '')
     CLAUDE_MODEL       = GROQ_MODEL
     DEFAULT_MODEL      = GROQ_MODEL
-    GEMINI_MODEL       = GROQ_MODEL
+    GROQ_MODEL       = GROQ_MODEL
 
 
 ActiveConfig = Config
