@@ -1422,9 +1422,8 @@ function renderKeyConcepts(concepts) {
 // Export
 // ============================================
 function initExport() {
-    $('exportBtn')?.addEventListener('click', () => {
-        $('exportMenu').classList.toggle('show');
-    });
+    // NOTE: exportBtn toggle is handled by the inline script in index.html
+    // (which also repositions the menu correctly). Do NOT add a second toggle here.
 
     // Export lock to prevent rapid clicks (Issue #14)
     let isExporting = false;
@@ -1489,8 +1488,24 @@ async function exportFile(format) {
         showToast('No content to export', 'error');
         return;
     }
+    // Client-side TXT export — always works without a backend
+    if (format === 'txt') {
+        const lines = [];
+        const r = AppState.currentResults;
+        if (r.summary) lines.push('=== SUMMARY ===\n' + (typeof r.summary === 'string' ? r.summary : JSON.stringify(r.summary, null, 2)));
+        if (r.study_notes) lines.push('\n=== STUDY NOTES ===\n' + (r.study_notes.content || r.study_notes));
+        if (r.cheat_sheet) lines.push('\n=== CHEAT SHEET ===\n' + (r.cheat_sheet.content || r.cheat_sheet));
+        if (r.flashcards) {
+            const cards = Array.isArray(r.flashcards) ? r.flashcards : (r.flashcards.flashcards || []);
+            lines.push('\n=== FLASHCARDS ===');
+            cards.forEach((c, i) => lines.push('Q' + (i+1) + ': ' + (c.question || c.front) + '\nA: ' + (c.answer || c.back)));
+        }
+        downloadText(lines.join('\n'), 'study-notes.txt');
+        showToast('Exported as TXT!', 'success');
+        return;
+    }
     try {
-        showToast(`Exporting as ${format.toUpperCase()}...`, 'info');
+        showToast('Exporting as ' + format.toUpperCase() + '...', 'info');
         const response = await secureFetch('/export', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1504,9 +1519,10 @@ async function exportFile(format) {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        showToast(`Exported as ${format.toUpperCase()}!`, 'success');
+        showToast('Exported as ' + format.toUpperCase() + '!', 'success');
     } catch (error) {
-        showToast('Export failed: ' + error.message, 'error');
+        showToast(format.toUpperCase() + ' export failed — try "Export as TXT" instead', 'error');
+        console.error('Export error:', error);
     }
 }
 
