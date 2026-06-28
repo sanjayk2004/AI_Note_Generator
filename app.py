@@ -2,7 +2,7 @@
 app.py - Main Flask Application
 AI Study Notes Generator
 -----------------------------------------
-Updated to use Google Gemini API
+Updated to use GROQ API
 Handles all routes:
 - GET  /              → Main page
 - POST /upload        → File upload & text extraction
@@ -304,7 +304,7 @@ def process_text():
 def generate():
     """
     Generate all AI study materials from text.
-    Uses Google Gemini API.
+    Uses GROQ API.
     Returns: Summary, notes, flashcards, quiz, etc.
     """
     try:
@@ -318,13 +318,13 @@ def generate():
         if not text:
             return error_response("Text is empty. Please provide content to generate notes from.")
 
-        # ── Check Gemini API key ──
+        # ── Check GROQ API key ──
         api_key = ActiveConfig.GROQ_API_KEY
         if not api_key:
             return error_response(
-                "Gemini API key not configured. "
-                "Please add your GEMINI_API_KEY to the .env file. "
-                "Get a free key at: https://aistudio.google.com"
+                "GROQ API key not configured. "
+                "Please add your GROQ_API_KEY to the .env file. "
+                "Get a key at: https://console.groq.com/"
             )
 
         # ── Get model ──
@@ -346,7 +346,7 @@ def generate():
 
         logger.info(f"🚀 Starting generation for {stats['word_count']} words using {model}...")
 
-        # ── Call Gemini API ──
+        # ── Call GROQ API ──
         results = generate_all(api_key, text, model, options)
 
         # ── Log results ──
@@ -540,8 +540,8 @@ def chat():
         api_key = ActiveConfig.GROQ_API_KEY
         if not api_key:
             return error_response(
-                "Gemini/Groq API key not configured. "
-                "Please add your GEMINI_API_KEY to the .env file."
+                "GROQ API key not configured. "
+                "Please add your GROQ_API_KEY to the .env file."
             )
 
         model = ActiveConfig.GROQ_MODEL
