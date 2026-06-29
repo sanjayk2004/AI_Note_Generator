@@ -15,10 +15,10 @@ Handles all routes:
 
 FIX (History): Replaced Flask cookie-based session history with filesystem
 storage. Flask cookie sessions are limited to ~4 KB; storing full AI-generated
-content (10–80 KB) caused the cookie to silently overflow and be discarded by
-the browser, so history was never persisted. The new approach writes one JSON
-file per browser session to the GENERATED_FOLDER and stores only a small
-session_id token in the cookie.
+content (10–80 KB) in session['history'] caused the cookie to silently overflow
+and be discarded by the browser, so history was never persisted. The new
+approach writes one JSON file per browser session to the GENERATED_FOLDER and
+stores only a small session_id token in the cookie.
 """
 
 import os
@@ -95,7 +95,6 @@ def _get_session_id() -> str:
 
 def _history_filepath(session_id: str) -> str:
     """Return the path of the history JSON file for this session."""
-    # Use a safe filename: just hex characters, no path traversal possible.
     safe_sid = ''.join(c for c in session_id if c in 'abcdef0123456789')[:32]
     return os.path.join(ActiveConfig.GENERATED_FOLDER, f'history_{safe_sid}.json')
 
@@ -517,13 +516,17 @@ def clear_history():
 
 
 # ─────────────────────────────────────────
-# Chat Route
+# Chat Route  ← FIXED
 # ─────────────────────────────────────────
 
 @app.route('/chat', methods=['POST'])
 def chat():
     """
     Handle chat conversation based on the context of the study material.
+    FIX: Replaced raise_for_status() with explicit error extraction so the
+    actual Groq error message (rate limit, bad key, model not found, etc.)
+    is returned instead of a silent 500. Added specific handlers for Timeout
+    and ConnectionError.
     """
     try:
         data = request.get_json()
@@ -546,8 +549,6 @@ def chat():
 
         model = ActiveConfig.GROQ_MODEL
 
-        # ── Direct Groq API call — bypasses call_groq() which has a hardcoded
-        #    study-only system prompt that cannot be overridden from outside. ──
         import requests as _requests
 
         # Build system prompt — Grok-style: bold, witty, answers everything
@@ -589,37 +590,74 @@ def chat():
         # Build messages array with history
         messages = [{"role": "system", "content": system_content}]
         for turn in history[-10:]:
-            role = turn.get('role', 'user')
+            role     = turn.get('role', 'user')
             api_role = "assistant" if role == 'ai' else "user"
-            content = turn.get('content', '')
+            content  = turn.get('content', '')
             if content:
                 messages.append({"role": api_role, "content": content})
         messages.append({"role": "user", "content": message})
 
-        groq_response = _requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": model,
-                "messages": messages,
-                "max_tokens": 2048,
-                "temperature": 0.8
-            },
-            timeout=30
-        )
-        groq_response.raise_for_status()
-        groq_data = groq_response.json()
-        response_text = groq_data["choices"][0]["message"]["content"]
+        # ── Call Groq with full error visibility ──
+        try:
+            groq_response = _requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type":  "application/json"
+                },
+                json={
+                    "model":       model,
+                    "messages":    messages,
+                    "max_tokens":  2048,
+                    "temperature": 0.8
+                },
+                timeout=30
+            )
 
-        return success_response({"response": response_text}, "Message processed successfully!")
+            # ── Capture Groq-level errors with full detail ──
+            if not groq_response.ok:
+                error_detail = ""
+                try:
+                    error_detail = groq_response.json().get("error", {}).get("message", groq_response.text)
+                except Exception:
+                    error_detail = groq_response.text
+                logger.error(f"❌ Groq API error {groq_response.status_code}: {error_detail}")
+                return error_response(
+                    f"AI service error ({groq_response.status_code}): {error_detail}"
+                )
+
+            groq_data     = groq_response.json()
+            response_text = groq_data["choices"][0]["message"]["content"]
+
+        except _requests.exceptions.Timeout:
+            logger.error("❌ Groq API request timed out")
+            return error_response("The AI took too long to respond. Please try again.")
+
+        except _requests.exceptions.ConnectionError as conn_err:
+            logger.error(f"❌ Groq API connection error: {conn_err}")
+            return error_response(
+                "Could not connect to the AI service. Check your internet connection."
+            )
+
+        except (KeyError, IndexError) as parse_err:
+            logger.error(f"❌ Unexpected Groq response format: {parse_err}")
+            return error_response(
+                "Received an unexpected response from the AI service. Please try again."
+            )
+
+        return success_response(
+            {"response": response_text},
+            "Message processed successfully!"
+        )
 
     except Exception as e:
         logger.exception("Unexpected error in /chat")
         return error_response(f"Chat failed: {str(e)}", 500)
 
+
+# ─────────────────────────────────────────
+# Service Worker Route
+# ─────────────────────────────────────────
 
 @app.route('/sw.js')
 def service_worker():
