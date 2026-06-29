@@ -1680,7 +1680,7 @@ async function sendChatMessage() {
     // Allow general conversation even without uploaded document
     const hasContext = AppState.extractedText && AppState.extractedText.length > 0;
 
-    // Disable input and send button during loading (Issues #10, #11)
+    // Disable input and send button during loading
     chatInput.disabled = true;
     if (sendBtn) sendBtn.disabled = true;
 
@@ -1690,8 +1690,10 @@ async function sendChatMessage() {
     showTypingIndicator();
     AppState.isChatLoading = true;
     try {
-        const response = await secureFetch('/chat', {
+        // Use raw fetch instead of secureFetch so we can read the error body ourselves
+        const rawResponse = await fetch('/chat', {
             method: 'POST',
+            credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 message: message,
@@ -1700,20 +1702,39 @@ async function sendChatMessage() {
                 has_context: hasContext
             })
         });
-        const data = await response.json();
-        hideTypingIndicator();
-        if (!data.success) throw new Error(data.error || 'Failed to get response');
 
-        // FIXED: Handle different backend response formats (Issue #6)
+        let data;
+        try {
+            data = await rawResponse.json();
+        } catch (parseErr) {
+            throw new Error(`Server returned non-JSON response (HTTP ${rawResponse.status})`);
+        }
+
+        hideTypingIndicator();
+
+        // If backend returned an error, show the REAL error message
+        if (!rawResponse.ok || !data.success) {
+            const errMsg = data.error || `Request failed with status ${rawResponse.status}`;
+            console.error('Chat backend error:', errMsg);
+            addChatMessage('ai', `⚠️ ${errMsg}`, true);
+            return;
+        }
+
+        // Handle different backend response formats
         const aiResponse = data.response || data.content || data.message || data.text || data.answer || data.reply || JSON.stringify(data);
         addChatMessage('ai', aiResponse);
 
         AppState.chatHistory.push({ role: 'user', content: message });
         AppState.chatHistory.push({ role: 'ai', content: aiResponse });
         if (AppState.chatHistory.length > 20) AppState.chatHistory = AppState.chatHistory.slice(-20);
+
     } catch (error) {
         hideTypingIndicator();
-        addChatMessage('ai', 'Sorry, I encountered an error. Please try again.', true);
+        // Show the actual error so we know what went wrong
+        const displayMsg = error.message && error.message !== 'Failed to fetch'
+            ? `⚠️ ${error.message}`
+            : '⚠️ Could not reach the server. Check your connection and try again.';
+        addChatMessage('ai', displayMsg, true);
         console.error('Chat error:', error);
     } finally {
         AppState.isChatLoading = false;
